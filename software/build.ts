@@ -3,9 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { build, BuildConfig, cliopts } from 'estrella';
-import open from 'open';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const servor = require('servor');
 
 function delayMs(n: number) {
   return new Promise((resolve) => setTimeout(resolve, n));
@@ -39,15 +36,10 @@ const [opts] = cliopts.parse(
   ['x-build', 'build application'],
   ['x-watch', 'build application with watcher'],
   ['x-exec', 'start application'],
-  ['x-mockview', 'start mockview'],
-  ['x-build-profile-drwaing-generator', 'build outward modules'],
 );
 const reqBuild = opts['x-build'];
 const reqWatch = opts['x-watch'];
 const reqExec = opts['x-exec'];
-const reqMockView = opts['x-mockview'];
-const reqBuildProfileDrawingDataGenerator =
-  opts['x-build-profile-drwaing-generator'];
 
 type IKeyPressEvent = {
   sequence: string;
@@ -130,69 +122,6 @@ async function makeUi() {
   );
 }
 
-function startMockView() {
-  const srcDir = './src/ui/mock-view';
-  const distDir = `./dist/ui_mock`;
-  fs.mkdirSync(distDir, { recursive: true });
-  fs.copyFileSync(`${srcDir}/index.html`, `${distDir}/index.html`);
-
-  build({
-    entry: `${srcDir}/index.tsx`,
-    outfile: `${distDir}/index.js`,
-    define: {
-      'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`,
-    },
-    bundle: true,
-    minify: false,
-    watch: true,
-    clear: false,
-    tslint: false,
-    sourcemap: true,
-    sourcesContent: true,
-    plugins: [gooberCssAutoLabelPlugin],
-  });
-
-  servor({
-    root: distDir,
-    fallback: 'index.html',
-    reload: true,
-    browse: true,
-    port: 3000,
-  });
-  open('http://localhost:3000');
-  console.log('server listening on http://localhost:3000');
-
-  (async () => {
-    const key = await readKey();
-    if (key.sequence === '\x1B' || key.sequence === '\x03') {
-      process.exit();
-    }
-  })();
-}
-
-async function makeProfileDrawingDataGeneratorModule() {
-  const srcDir = './src/ex_profileDrawingDataGenerator';
-  const distDir = `./dist_ex`;
-  fs.mkdirSync(distDir, { recursive: true });
-
-  return await new Promise((resolve) =>
-    build({
-      entry: `${srcDir}/index.ts`,
-      outfile: `${distDir}/kermite_profile_drawing_data_generator.js`,
-      define: {
-        'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`,
-      },
-      bundle: true,
-      minify: false,
-      watch: false,
-      clear: false,
-      tslint: false,
-      sourcemap: false,
-      onEnd: resolve,
-    }),
-  );
-}
-
 function startElectronProcess() {
   let reqReboot = false;
 
@@ -230,16 +159,6 @@ function startElectronProcess() {
 }
 
 async function entry() {
-  if (reqMockView) {
-    startMockView();
-    return;
-  }
-
-  if (reqBuildProfileDrawingDataGenerator) {
-    await makeProfileDrawingDataGeneratorModule();
-    return;
-  }
-
   if (reqBuild || reqWatch) {
     await makeShell();
     await makeUi();
