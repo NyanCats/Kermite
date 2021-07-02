@@ -10,6 +10,8 @@ const [opts] = cliopts.parse(
   ['x-build-profile-drwaing-generator', 'build outward modules'],
   ['x-debug-profile-viewer', 'debug profile viewer'],
   ['x-build-profile-viewer', 'build profile viewer'],
+  ['x-debug-firmware-stats-page', 'debug firmware stats page'],
+  ['x-build-firmware-stats-page', 'build firmware stats page'],
 );
 const reqMockView = opts['x-mockview'];
 const reqBuildProfileDrawingDataGenerator =
@@ -17,6 +19,8 @@ const reqBuildProfileDrawingDataGenerator =
 
 const reqDebugProfileViewer = opts['x-debug-profile-viewer'];
 const reqBuildProfileViewer = opts['x-build-profile-viewer'];
+const reqDebugFirmwareStatsPage = opts['x-debug-firmware-stats-page'];
+const reqBuildFirmwareStatsPage = opts['x-build-firmware-stats-page'];
 
 type IKeyPressEvent = {
   sequence: string;
@@ -139,6 +143,33 @@ function buildDebugProfileViewer(watch: boolean) {
   }
 }
 
+function buildDebugFirmwareStatsPage(watch: boolean) {
+  const srcDir = './src/ex_firmwareListPage';
+  const distDir = `./dist_ex/firmware-stats`;
+  fs.mkdirSync(distDir, { recursive: true });
+  fs.copyFileSync(`${srcDir}/index.html`, `${distDir}/index.html`);
+  patchOutputIndexHtmlBundleImport(`${distDir}/index.html`);
+
+  build({
+    entry: `${srcDir}/index.tsx`,
+    outfile: `${distDir}/index.js`,
+    define: {
+      'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`,
+    },
+    bundle: true,
+    minify: false,
+    watch,
+    clear: false,
+    tslint: false,
+    sourcemap: true,
+    sourcesContent: true,
+  });
+
+  if (watch) {
+    launchDebugServer(distDir);
+  }
+}
+
 async function entry() {
   if (reqMockView) {
     startMockView();
@@ -152,6 +183,16 @@ async function entry() {
 
   if (reqBuildProfileViewer) {
     buildDebugProfileViewer(false);
+    return;
+  }
+
+  if (reqDebugFirmwareStatsPage) {
+    buildDebugFirmwareStatsPage(true);
+    return;
+  }
+
+  if (reqBuildFirmwareStatsPage) {
+    buildDebugFirmwareStatsPage(false);
     return;
   }
 
