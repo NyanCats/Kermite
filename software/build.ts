@@ -40,11 +40,14 @@ const [opts] = cliopts.parse(
   ['x-watch', 'build application with watcher'],
   ['x-exec', 'start application'],
   ['x-mockview', 'start mockview'],
+  ['x-build-profile-drwaing-generator', 'build outward modules'],
 );
 const reqBuild = opts['x-build'];
 const reqWatch = opts['x-watch'];
 const reqExec = opts['x-exec'];
 const reqMockView = opts['x-mockview'];
+const reqBuildProfileDrawingDataGenerator =
+  opts['x-build-profile-drwaing-generator'];
 
 type IKeyPressEvent = {
   sequence: string;
@@ -167,6 +170,29 @@ function startMockView() {
   })();
 }
 
+async function makeProfileDrawingDataGeneratorModule() {
+  const srcDir = './src/ex_profileDrawingDataGenerator';
+  const distDir = `./dist_ex`;
+  fs.mkdirSync(distDir, { recursive: true });
+
+  return await new Promise((resolve) =>
+    build({
+      entry: `${srcDir}/index.ts`,
+      outfile: `${distDir}/kermite_profile_drawing_data_generator.js`,
+      define: {
+        'process.env.NODE_ENV': `"${process.env.NODE_ENV}"`,
+      },
+      bundle: true,
+      minify: false,
+      watch: false,
+      clear: false,
+      tslint: false,
+      sourcemap: false,
+      onEnd: resolve,
+    }),
+  );
+}
+
 function startElectronProcess() {
   let reqReboot = false;
 
@@ -206,6 +232,11 @@ function startElectronProcess() {
 async function entry() {
   if (reqMockView) {
     startMockView();
+    return;
+  }
+
+  if (reqBuildProfileDrawingDataGenerator) {
+    await makeProfileDrawingDataGeneratorModule();
     return;
   }
 
