@@ -14,6 +14,7 @@ import { ProfileDataConverter } from '~/shell/loaders/ProfileDataConverter';
 import { ProfileDataMigrator } from '~/shell/loaders/ProfileDataMigrator';
 import {
   getAssignEntryTexts,
+  getAssignForKeyUnitInInitialLayerStack,
   getAssignForKeyUnitWithLayerFallback,
 } from '~/ui/common-svg/keyUnitCardModels/KeyUnitCardViewModelCommon';
 
@@ -46,22 +47,24 @@ interface IProfileLayersDisplayModel {
   layers: ILayerDisplayModel[];
   keyUnits: IKeyUnitDisplayModel[];
   completedKeyUnitTexts: IKeyUnitTextDisplayModelsDict;
-  layerKeyUnitTexts: { [layerId in string]: IKeyUnitTextDisplayModelsDict };
 }
 
 function createKeyUnitTextDisplayModel(
   ke: IDisplayKeyEntity,
-  targetLayerId: string,
+  targetLayerId: string | undefined,
   layers: ILayer[],
   assigns: IProfileData['assigns'],
 ): IKeyUnitTextDisplayModel {
-  const keyId = ke.keyId;
-  const assign = getAssignForKeyUnitWithLayerFallback(
-    keyId,
-    targetLayerId,
-    layers,
-    assigns,
-  );
+  const keyUnitId = ke.keyId;
+  const assign = targetLayerId
+    ? getAssignForKeyUnitWithLayerFallback(
+        keyUnitId,
+        targetLayerId,
+        layers,
+        assigns,
+      )
+    : getAssignForKeyUnitInInitialLayerStack(keyUnitId, layers, assigns);
+
   const { primaryText, secondaryText, isLayerFallback } = getAssignEntryTexts(
     assign,
     layers,
@@ -100,31 +103,23 @@ function createProfileLayersDisplayModel(
     layerId: la.layerId,
     layerName: la.layerName,
   }));
-
-  const layerKeyUnitTexts = createDictionaryFromKeyValues(
-    layers.map((la) => {
-      const keyUnitTextDisplayModelsDict = createDictionaryFromKeyValues(
-        keyboardDesign.keyEntities.map((ke) => {
-          const textDispalyModel = createKeyUnitTextDisplayModel(
-            ke,
-            la.layerId,
-            layers,
-            assigns,
-          );
-          return [ke.keyId, textDispalyModel];
-        }),
+  const completedKeyUnitTexts = createDictionaryFromKeyValues(
+    keyboardDesign.keyEntities.map((ke) => {
+      const textDispalyModel = createKeyUnitTextDisplayModel(
+        ke,
+        undefined,
+        layers,
+        assigns,
       );
-      return [la.layerId, keyUnitTextDisplayModelsDict];
+      return [ke.keyId, textDispalyModel];
     }),
   );
-  const completedKeyUnitTexts = layerKeyUnitTexts.la0;
 
   return {
     displayArea: keyboardDesign.displayArea,
     outlineShapes: keyboardDesign.outlineShapes,
     layers: outLayers,
     keyUnits,
-    layerKeyUnitTexts,
     completedKeyUnitTexts,
   };
 }
