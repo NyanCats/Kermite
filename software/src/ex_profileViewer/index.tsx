@@ -8,6 +8,7 @@ import {
   IProfileData,
 } from '~/shared';
 import { ProfileDataConverter } from '~/shell/loaders/ProfileDataConverter';
+import { ProfileDataMigrator } from '~/shell/loaders/ProfileDataMigrator';
 import { ScalerBox } from '~/ui/common-svg/frames/ScalerBox';
 import { usePresetKeyboardSectionViewModel } from '~/ui/preset-browser-page/viewModels';
 
@@ -60,9 +61,12 @@ async function fetchProfile() {
     try {
       console.log(`loading profile from ${debugProfileUrl}`);
       const res = await fetch(debugProfileUrl);
-      const persiteProfileData = (await res.json()) as IPersistProfileData;
+      const sourceProfileData = (await res.json()) as IPersistProfileData;
+      const migratedProfileData = ProfileDataMigrator.fixProfileData(
+        sourceProfileData,
+      );
       const profileData = ProfileDataConverter.convertProfileDataFromPersist(
-        persiteProfileData,
+        migratedProfileData,
       );
       console.log(`profile loaded`);
       // console.log({ profileData });
@@ -78,9 +82,12 @@ async function fetchProfile() {
       console.log(`loading profile from ${profileUrl}`);
       const res = await fetch(profileUrl);
       const obj = (await res.json()) as IProfileResponse;
-      const persiteProfileData = JSON.parse(obj.data);
+      const sourceProfileData = JSON.parse(obj.data);
+      const migratedProfileData = ProfileDataMigrator.fixProfileData(
+        sourceProfileData,
+      );
       const profileData = ProfileDataConverter.convertProfileDataFromPersist(
-        persiteProfileData,
+        migratedProfileData,
       );
       console.log(`profile loaded: ${obj.name} (by ${obj.userDisplayName})`);
       // console.log({ profileData });
